@@ -91,4 +91,8 @@ class CalendarAuthController extends Controller
         $client->setRedirectUri($url);
     }
 
+    private function isInPackagesPath() {
+        return !( strpos( __DIR__, "packages" ) === false );
+    }
+
 }
