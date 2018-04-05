@@ -19,6 +19,17 @@ class CalendarAuthController extends Controller
         return $client->createAuthUrl();
     }
     
+    public function getToken( Request $request ){
+        $code = $request->get("code", false );
+        if( $code === false ){
+            throw new \Exception("Only call CalendarAuthController::getToken( Request $request ) on a redirect page. Google will add a parameter to the Request object that is required by this method.");
+        }
+        $client = $this->makeClient();
+        $token = $client->fetchAccessTokenWithAuthCode($code);
+        $this->inspectTokenForError( $token );
+        return $token;
+    }
+    
     private function getRootDirectory(){
         $key = "vendor";
         if( $this->isInPackagesPath() ){
@@ -93,6 +104,12 @@ class CalendarAuthController extends Controller
 
     private function isInPackagesPath() {
         return !( strpos( __DIR__, "packages" ) === false );
+    }
+
+    private function inspectTokenForError($token) {
+        if( !is_string( $token ) ){
+            var_dump( $token ); die( 'Token is not a string' );
+        }
     }
 
 }
