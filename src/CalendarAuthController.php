@@ -107,8 +107,14 @@ class CalendarAuthController extends Controller
     }
 
     private function inspectTokenForError($token) {
-        if( !is_string( $token ) ){
-            var_dump( $token ); die( 'Token is not a string' );
+        if( is_array($token) ){
+            $error = null;
+            $error_description = null;
+            extract( $token, EXTR_OVERWRITE );
+            if( $error != null ){
+                $msg = "GoogleApi Exception: $error -- $error_description";
+                throw new \Exception( $msg );
+            }
         }
     }
 
