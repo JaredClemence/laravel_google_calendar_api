@@ -2,8 +2,10 @@
 
 == Installing ==
 
-Check back later for installation instructions. This package has not yet been 
-uploaded to packagist.
+Use composer to include this in your laravel package. From the base directory of your 
+laravel 5 program, use the following command:
+
+    composer require jaredclemence/laravel_google_calendar_api
 
 == Use ==
 
