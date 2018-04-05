@@ -7,6 +7,6 @@ use Illuminate\Http\Request;
 class CalendarAuthController extends Controller
 {
     public function getAuthUrl(){
-        die( __DIR__ );
+        return __DIR__;
     }
 }
