@@ -3,6 +3,7 @@
 namespace JRC\Google\Calendar;
 
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
 
 class CalendarAuthController extends Controller
 {
