@@ -1,0 +1,20 @@
+{
+    "name": "jaredclemence/laravel_google_calendar_api",
+    "description": "This is a plugin for laravel 5 projects to simplify the google calendar api.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Jared Clemence",
+            "email": "jaredclemence@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+        "php": "^7.1.3",
+        "fideloper/proxy": "^4.0",
+        "google/apiclient": "^2.2",
+        "laravel/framework": "5.6.*",
+        "laravel/tinker": "^1.0"
+    }
+}
