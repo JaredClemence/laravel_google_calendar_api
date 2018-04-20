@@ -5,16 +5,19 @@ namespace JRC\Google\Calendar;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Google_Client as Client;
-use Google_Service_Calendar as CalendarService;
-
-const NOTSET = "NOTSET";
+use JRC\Google\Calendar\ClientBuilder;
 
 class CalendarAuthController extends Controller
 {
+    /** @var ClientBuilder */
+    private $builder;
+    
     /** @var Client */
     private $client;
+    
     /** @var array */
     private $authModifications;
+    
     /** @var array */
     private $lastTokenArray;
 
@@ -33,7 +36,7 @@ class CalendarAuthController extends Controller
      */
     public function getAuthUrl(){
         $client = $this->makeClient();
-        $this->applyAuthModifications();
+        $this->applyAuthModifications($client);
         return $client->createAuthUrl();
     }
     
@@ -138,81 +141,14 @@ class CalendarAuthController extends Controller
         if( !is_array( $this->authModifications ) ) $this->authModifications = [];
         $this->authModifications[] = $modifier;
     }
-    
-    private function getRootDirectory(){
-        $key = "vendor";
-        if( $this->isInPackagesPath() ){
-            $key = "packages";
-        }
-        return $this->findRootDirectoryUsingChildFolder( $key );
-        
-    }
-    
-    private function getEnvironmentSetting( $key ){
-        $value = env( $key, NOTSET );
-        if( $value == NOTSET ){
-            throw new \Exception("Please add a setting for $key in the .env file.");
-        }
-        return $value;
-    }
-
-    private function findRootDirectoryUsingChildFolder($folderName) {
-        $dir = __DIR__;
-        $pos = \strpos( $dir, $folderName );
-        $root = \substr( $dir, 0, $pos );
-        $realpath = \realpath($root);
-        if( !$realpath ){
-            throw new \Exception( "Error in detecting root folder. Path identified as '$root' does not exist." );
-        }
-        return $realpath;
-    }
 
     private function makeClient() : Client {
-        $this->initializeClient();
-        $this->loadOauthConfigFromJsonFile();
-        $this->setCalendarScope();
-        $this->setRedirectUrl();
-        return $this->getClient();
-    }
-
-    private function loadOauthConfigFromJsonFile() {
-        $relativePath = $this->getEnvironmentSetting('GOOGLE_APPLICATION_CREDENTIALS');
-        $rootPath = $this->getRootDirectory();
-        if( substr( $relativePath, 0, 1 ) !== '/' ) {
-            $relativePath = '/' . $relativePath;
-        }
-        $path = $rootPath . $relativePath;
-        $realpath = realpath($path);
-        if( !$realpath ){
-            throw new \Exception("Unable to locate OAuth Configuration file at path identified in env('GOOGLE_APPLICATION_CREDENTIALS'): '$path'");
-        }
-        
-        $client = $this->getClient();
-        $client->setAuthConfig($realpath);
-    }
-
-    private function initializeClient() {
-        $this->client = new Client();
-    }
-    
-    private function getClient() : Client {
-        return $this->client;
-    }
-
-    private function setCalendarScope() {
-        $scope = CalendarService::CALENDAR;
-        $client = $this->getClient();
-        $client->setScopes($scope);
-    }
-
-    private function setRedirectUrl() {
-        $url = $this->getEnvironmentSetting('GOOGLE_REDIRECT_URI');
-        $client = $this->getClient();
-        $client->setRedirectUri($url);
-    }
-
-    private function isInPackagesPath() {
-        return !( strpos( __DIR__, "packages" ) === false );
+        $builder = new ClientBuilder();
+        $builder->loadOauthConfigFromJsonFile();
+        $builder->setCalendarScope();
+        $builder->loadRedirectUrlFromEnvironmentFile();
+        $client = $builder->make();
+        return $client;
     }
 
     private function inspectTokenForError($token) {
@@ -227,8 +163,7 @@ class CalendarAuthController extends Controller
         }
     }
 
-    private function applyAuthModifications() {
-        $client = $this->client;
+    private function applyAuthModifications($client) {
         while( $modifier = array_shift( $this->authModifications ) ){
             $modifier( $client );
         }
