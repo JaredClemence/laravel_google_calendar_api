@@ -76,15 +76,28 @@ class CalendarAuthController extends Controller
      * @throws \Exception
      */
     public function getToken( Request $request ){
+        $this->initializeClient();
+        $client = $this->client;
         $code = $request->get("code", false );
         if( $code === false ){
             throw new \Exception("Only call CalendarAuthController::getToken( Request $request ) on a redirect page. Google will add a parameter to the Request object that is required by this method.");
         }
-        $client = $this->makeClient();
         $tokenArray = $client->fetchAccessTokenWithAuthCode($code);
         $this->inspectTokenForError( $tokenArray );
         $this->saveLastTokenArray( $tokenArray );
         return $tokenArray['access_token'];
+    }
+    
+    /**
+     * 
+     * @param Request $request
+     * @todo Find out why the refresh token is not working... We have not been successful in getting a refresh token with the standard token thus far.
+     */
+    public function getRefreshToken( Request $request ){
+        $this->initializeClient();
+        $code = $request->get("code", false );
+        $refresh = $this->client->fetchAccessTokenWithRefreshToken($code);
+        dd($refresh);
     }
 
     /**
@@ -146,6 +159,7 @@ class CalendarAuthController extends Controller
         $builder = new ClientBuilder();
         $builder->loadOauthConfigFromJsonFile();
         $builder->setCalendarScope();
+        $builder->setPrompt('consent');
         $builder->loadRedirectUrlFromEnvironmentFile();
         $client = $builder->make();
         return $client;
@@ -171,6 +185,12 @@ class CalendarAuthController extends Controller
 
     private function saveLastTokenArray($tokenArray) {
         $this->lastTokenArray = $tokenArray;
+    }
+
+    private function initializeClient() {
+        $client = $this->makeClient();
+        $this->client = $client;
+        return $client;
     }
 
 }

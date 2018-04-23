@@ -74,6 +74,13 @@ class ClientBuilder {
         $this->setRedirectUrl($url);
     }
     
+    public function setPrompt( $type ){
+        $modification = function( Client $client ) use ( $type ){
+            $client->setPrompt( $type );
+        };
+        $this->modifications[] = $modification;
+    }
+    
     public function setRedirectUrl( $uri ){
         $modification = function( $client ) use ( $uri ){
             $client->setRedirectUri($uri);
