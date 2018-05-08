@@ -41,6 +41,13 @@ class ClientBuilder {
         };
         $this->modifications[] = $modification;
     }
+    
+    public function setRefreshToken( $token ){
+        $modification = function( Client $client ) use ($token){
+            $client->refreshToken( $token );
+        };
+        $this->modifications[] = $modification;
+    }
 
     public function loadOauthConfigFromJsonFile() {
         $self = $this;

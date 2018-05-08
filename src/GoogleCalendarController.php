@@ -18,7 +18,8 @@ class GoogleCalendarController extends Controller
     private $token;
     private $client;
     private $service;
-    
+    private $refreshToken;
+
     public function getCalendar( $authToken, $calendarId ) : Calendar {
         $this->initializeController($authToken);
         $calendar = $this->service->calendars->get( $calendarId );
@@ -28,10 +29,11 @@ class GoogleCalendarController extends Controller
     /**
      * Get a list of all calendars associated with the authorized account.
      * @param string $authToken
+     * @param string $refreshToken  Pass in 'null' if a refresh token is not being used.
      * @return CalendarList
      */
-    public function getCalendarList($authToken) : CalendarList {
-        $this->initializeController($authToken);
+    public function getCalendarList($authToken, $refreshToken) : CalendarList {
+        $this->initializeController($authToken, $refreshToken);
         $calendarList = $this->service->calendarList->listCalendarList();
         return $calendarList;
     }
@@ -39,14 +41,15 @@ class GoogleCalendarController extends Controller
     /**
      * Get a list of all events associated with the calendar id.
      * @param string $authToken
+     * @param string $refreshToken  Pass in 'null' if a refresh token is not being used.
      * @param string $calendarId
      * @param array $options
      * 
      * For a list of options:
      * @see https://developers.google.com/calendar/v3/reference/events/list
      */
-    public function getEvents( string $authToken, string $calendarId, $options = [] ) : Collection {
-        $this->initializeController($authToken);
+    public function getEvents( string $authToken, string $refreshToken, string $calendarId, $options = [] ) : Collection {
+        $this->initializeController($authToken, $refreshToken);
         $all = $this->service->events->listEvents( $calendarId, $options );
         $collection = collect();
         foreach( $all as $one ){
@@ -59,6 +62,7 @@ class GoogleCalendarController extends Controller
     /**
      * Get a single event from a single calendar.
      * @param string $authToken
+     * @param string $refreshToken  Pass in 'null' if a refresh token is not being used.
      * @param string $calendarId
      * @param string $eventId
      * @param array $options
@@ -66,14 +70,15 @@ class GoogleCalendarController extends Controller
      * For a list of options:
      * @see https://developers.google.com/calendar/v3/reference/events/get
      */
-    public function getEvent( string $authToken, string $calendarId, string $eventId, $options ) : Event {
-        $this->initializeController($authToken);
+    public function getEvent( string $authToken, string $refreshToken, string $calendarId, string $eventId, $options ) : Event {
+        $this->initializeController($authToken, $refreshToken);
         return $this->service->events->get( $calendarId, $eventId, $options );
     }
     
-    private function initializeController( string $authToken ){
+    private function initializeController( string $authToken, string $refreshToken ){
         if( $this->token != $authToken ){
             $this->setTheAuthToken( $authToken );
+            $this->setTheRefreshToken( $refreshToken );
             $this->buildTheClient();
             $this->buildTheCalendarService();
         }
@@ -82,12 +87,21 @@ class GoogleCalendarController extends Controller
     private function setTheAuthToken($authToken) {
         $this->token = $authToken;
     }
+    
+    private function setTheRefreshToken( $token ){
+        $this->refreshToken = $token;
+    }
 
     private function buildTheClient() {
         $builder= new ClientBuilder();
         $builder->loadOauthConfigFromJsonFile();
         $builder->setCalendarScope();
-        $builder->setAccessToken( $this->token );
+        if( $this->token ){
+            $builder->setAccessToken( $this->token );
+        }
+        if( $this->refreshToken ){
+            $builder->setRefreshToken( $this->refreshToken );
+        }
         $client = $builder->make();
         $this->client = $client;
     }
