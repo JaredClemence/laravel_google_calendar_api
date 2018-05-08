@@ -76,14 +76,15 @@ class Event {
             $timeZone = $dateObj->timeZone;
             
             $dateTimeObj = null;
-            $tempZone = new \DateTimeZone( "UTC" );
+            $localZone = env('LOCAL_ZONE');
+            $tempZone = new \DateTimeZone($localZone);
             if( $timeZone ){
                 $tempZone = new \DateTimeZone( $timeZone );
             }
             if( $dateTime ){
                 $dateTimeObj = new \DateTime( $dateTime, $tempZone );
             }else if( $date ){
-                $dateTimeObj = new \DateTime( $dateTime, $tempZone );
+                $dateTimeObj = new \DateTime( $date, $tempZone );
             }
             if( $zone ){
                 $dateTimeObj->setTimezone($zone);
