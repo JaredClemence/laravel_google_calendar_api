@@ -20,6 +20,17 @@ class CalendarAuthController extends Controller
     
     /** @var array */
     private $lastTokenArray;
+    
+    /** @var string */
+    private $access_token;
+    /** @var string */
+    private $token_type;
+    /** @var number seconds until expires */
+    private $expires_in;
+    /** @var string */
+    private $refresh_token;
+    /** @var number timestamp */
+    private $created;
 
     /**
      * This method returns a url that your user can travel to in order to grant your application authorization 
@@ -58,24 +69,44 @@ class CalendarAuthController extends Controller
     }
     
     /**
-     * Call this method and pass in the Request object that Laravel creates at the Google API callback endpoint.
-     * 
-     * You define this endpoint in your Google API JSON file, and you must remember to add a route that 
-     * supports this endpoint in your own web.php file. For example, I have Google calling my application at 
-     * {myserver}/google_auth. In my route file, I would then add:
-     * 
-     * Route::get( '/google_auth', function( Request $request ){
-     *      $controller = new JRC\Google\Calendar\CalendarAuthController();
-     *      $tokenString = $controller->getToken( $request );
-     * 
-     *      //save this token or use it now... it's your choice
-     * } );
-     * 
-     * @param Request $request
-     * @return string
-     * @throws \Exception
+     * Get the token parsed from the last request.
      */
-    public function getToken( Request $request ){
+    public function getToken(){
+        return $this->access_token;
+    }
+    
+    /**
+     * Call this method first.
+     * 
+     * This method should be run in on the callback page with the page request.
+     * The callback page is loaded with a 'code' that allows the google client 
+     * to fetch auth codes and refresh tokens.
+     * 
+     * Once this method has parsed the request, any available data will be available 
+     * by calling getToken() or getRefreshToken()
+     * 
+     * If it exists!!!!, save the refresh token.  It will never be re-issued.
+     * 
+     * If a user needs to have it re-issued, the
+     * @param Request $request
+     */
+    public function parseResponseForTokens( Request $request ){
+        $access_token = null;
+        $token_type = null;
+        $expires_in = null;
+        $refresh_token = null;
+        $created = null;
+        $tokenArray = $this->convertRequestToTokenArray( $request );
+        extract($tokenArray, EXTR_OVERWRITE);
+        $this->setAccessToken( $access_token );
+        $this->setTokenType( $token_type );
+        $this->setExpiresIn( $expires_in );
+        $this->setRefreshToken( $refresh_token );
+        $this->setCreated( $created );
+        $this->inspectTokenForError( $tokenArray );
+    }
+    
+    protected function convertRequestToTokenArray( Request $request ){
         $this->initializeClient();
         $client = $this->client;
         $code = $request->get("code", false );
@@ -83,21 +114,31 @@ class CalendarAuthController extends Controller
             throw new \Exception("Only call CalendarAuthController::getToken( Request $request ) on a redirect page. Google will add a parameter to the Request object that is required by this method.");
         }
         $tokenArray = $client->fetchAccessTokenWithAuthCode($code);
-        $this->inspectTokenForError( $tokenArray );
-        $this->saveLastTokenArray( $tokenArray );
-        return $tokenArray['access_token'];
+        return $tokenArray;
+    }
+    
+    protected function setAccessToken($access_token) {
+        $this->access_token = $access_token;
+    }
+    
+    protected function setTokenType( $type ){
+        $this->token_type = $type;
+    }
+    protected function setExpiresIn( $expires ){
+        $this->expires_in = $expires;
+    }
+    protected function setRefreshToken( $refresh ){
+        $this->refresh_token = $refresh;
+    }
+    protected function setCreated( $created ){
+        $this->created = $created;
     }
     
     /**
-     * 
-     * @param Request $request
-     * @todo Find out why the refresh token is not working... We have not been successful in getting a refresh token with the standard token thus far.
+     * Get the refresh token from the previous request
      */
-    public function getRefreshToken( Request $request ){
-        $this->initializeClient();
-        $code = $request->get("code", false );
-        $refresh = $this->client->fetchAccessTokenWithRefreshToken($code);
-        dd($refresh);
+    public function getRefreshToken(){
+        return $this->refresh_token;
     }
 
     /**
